@@ -1,13 +1,6 @@
-/*
-Display: Page should display a list of ToDo items with the following actions:
-    Add Task: Provide an input field to add new tasks to the list.
-    Delete Task: Add a delete button next to each task. When clicked, the task is deleted.
-    Edit Task: Add an edit button next to each task. When clicked, the task becomes editable.
-    Complete Task: Implement an intuitive way for the user to set a task as 'done'.
-    Undo Action: Add an undo button which will undo the previous Add/Delete action
-*/
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 import {
   addTask,
   updateTask,
@@ -17,6 +10,7 @@ import {
   redoAction,
 } from "../store/tasks";
 
+//mui components
 import Container from "@mui/material/Container";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -31,6 +25,7 @@ import TextField from "@mui/material/TextField";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 
+//mui icons
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import AddIcon from "@mui/icons-material/Add";
@@ -39,24 +34,31 @@ import PublishIcon from "@mui/icons-material/Publish";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import DisabledByDefaultIcon from "@mui/icons-material/DisabledByDefault";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import QueryStatsIcon from "@mui/icons-material/QueryStats";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 export function TaskList() {
   const dispatch = useDispatch();
 
-  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  //snack bar controls
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarButtonText, setSnackbarButtonText] = useState("");
   const [snackbarRedo, setSnackbarRedo] = useState(false);
+
+  //modal controls
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
   const handleOpen = () => setTaskModalOpen(true);
   const handleClose = () => setTaskModalOpen(false);
 
+  //form controls
   const [taskId, setTaskId] = useState(0);
   const [taskName, setTaskName] = useState("");
-  const [taskCategory, setTaskCategory] = useState("Misc");
+  const [taskCategory, setTaskCategory] = useState("");
   const [taskFinished, setTaskFinished] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  //load and display tasks
   function displayTasks(
     id,
     name,
@@ -82,10 +84,11 @@ export function TaskList() {
     rows.push(row);
   });
 
+  //modal controls
   const addTaskClicked = () => {
     setIsEditing(false);
     setTaskName("");
-    setTaskCategory("Misc");
+    setTaskCategory("");
     handleOpen();
   };
 
@@ -97,6 +100,18 @@ export function TaskList() {
     handleOpen();
   };
 
+  //snackbar controls
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+    setSnackbarRedo(false);
+  };
+
+  const handleSnackbar = (message, buttonText) => {
+    setSnackbarMessage(message);
+    setSnackbarButtonText(buttonText);
+  };
+
+  //actions
   const handleAddTask = () => {
     dispatch(addTask({ taskName: taskName, taskCategory: taskCategory }));
     handleClose();
@@ -113,7 +128,7 @@ export function TaskList() {
       })
     );
     handleClose();
-    handleSnackbar("Task has been updated", "Undo Edit");
+    handleSnackbar("Task has been edited", "Undo Edit");
     setSnackbarOpen(true);
   };
 
@@ -130,16 +145,6 @@ export function TaskList() {
     handleClose();
   };
 
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
-    setSnackbarRedo(false);
-  };
-
-  const handleSnackbar = (message, buttonText) => {
-    setSnackbarMessage(message);
-    setSnackbarButtonText(buttonText);
-  };
-
   const handleUndo = () => {
     dispatch(undoAction());
     handleSnackbar("Undo Successful", "Redo");
@@ -148,9 +153,7 @@ export function TaskList() {
 
   const handleRedo = () => {
     dispatch(redoAction());
-    handleSnackbar("Redo Successful", "Undo");
-    setSnackbarRedo(false);
-    setSnackbarOpen(false);
+    handleSnackbarClose();
   };
 
   return (
@@ -201,7 +204,13 @@ export function TaskList() {
         </Alert>
       </Snackbar>
       <Modal open={taskModalOpen} onClose={() => handleClose()}>
-        <Container maxWidth="xs">
+        <Container
+          maxWidth="xs"
+          sx={{
+            backgroundColor: "white",
+            borderRadius: "5px",
+          }}
+        >
           <div className="task-modal">
             <div className="row">
               <div className="col-12 text-center">
@@ -217,6 +226,7 @@ export function TaskList() {
                   className="text-input"
                   value={taskName}
                   onChange={(e) => setTaskName(e.target.value)}
+                  inputProps={{ maxLength: 25 }}
                 ></TextField>
               </div>
             </div>
@@ -228,6 +238,7 @@ export function TaskList() {
                   className="text-input"
                   value={taskCategory}
                   onChange={(e) => setTaskCategory(e.target.value)}
+                  inputProps={{ maxLength: 25 }}
                 ></TextField>
               </div>
             </div>
@@ -259,7 +270,7 @@ export function TaskList() {
                     className="float-end"
                     onClick={() => handleAddTask()}
                   >
-                    <AddIcon></AddIcon>Add
+                    <PlayArrowIcon></PlayArrowIcon>Start
                   </Button>
                 )}
                 {isEditing == true && (
@@ -273,7 +284,7 @@ export function TaskList() {
                     className="float-end"
                     onClick={() => handleEditTask()}
                   >
-                    <PublishIcon></PublishIcon>Update
+                    <PublishIcon></PublishIcon>Edit
                   </Button>
                 )}
               </div>
@@ -288,32 +299,45 @@ export function TaskList() {
       >
         <div className="task-list">
           <h1>Tasks</h1>
-          <div className="d-flex flex-row-reverse">
-            <div className="col-3 remove-padding">
-              <Button
-                sx={{
-                  width: "195px",
-                  backgroundColor: "#ffbd03 !important",
-                  fontWeight: "bold",
-                }}
-                className="float-end"
-                onClick={() => addTaskClicked()}
-              >
-                <AddIcon></AddIcon>Add Task
-              </Button>
+          <div className="row">
+            <div className="col-12">
+              <Link to="/metrics">
+                <Button
+                  sx={{
+                    width: "195px",
+                    backgroundColor: "#a881af !important",
+                    fontWeight: "bold",
+                    float: "left",
+                  }}
+                >
+                  <QueryStatsIcon></QueryStatsIcon>Metrics
+                </Button>
+              </Link>
             </div>
           </div>
           <TableContainer component={Paper}>
             <Table sx={{ minWidth: 650 }} aria-label="simple table">
               <TableHead>
                 <TableRow>
-                  <TableCell>Task #</TableCell>
-                  <TableCell align="right">Name</TableCell>
-                  <TableCell align="right">Category</TableCell>
-                  <TableCell align="right">Finished</TableCell>
-                  <TableCell align="right">Start Date</TableCell>
-                  <TableCell align="right">Elapsed Time</TableCell>
-                  <TableCell align="right"></TableCell>
+                  <TableCell align="center">Task #</TableCell>
+                  <TableCell align="center">Name</TableCell>
+                  <TableCell align="center">Category</TableCell>
+                  <TableCell align="center">Finished</TableCell>
+                  <TableCell align="center">Start Date</TableCell>
+                  <TableCell align="center">Elapsed Time</TableCell>
+                  <TableCell align="center">
+                    <Button
+                      sx={{
+                        width: "190px",
+                        backgroundColor: "#ffbd03 !important",
+                        fontWeight: "bold",
+                        float: "right",
+                      }}
+                      onClick={() => addTaskClicked()}
+                    >
+                      <AddIcon></AddIcon>Add Task
+                    </Button>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -321,13 +345,16 @@ export function TaskList() {
                   <TableRow
                     key={row.id}
                     sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                    onDoubleClick={() => {
+                      editTaskClicked(row);
+                    }}
                   >
-                    <TableCell component="th" scope="row">
+                    <TableCell component="th" scope="row" align="center">
                       {row.id}
                     </TableCell>
-                    <TableCell align="right">{row.name}</TableCell>
-                    <TableCell align="right">{row.category}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">{row.name}</TableCell>
+                    <TableCell align="center">{row.category}</TableCell>
+                    <TableCell align="center">
                       {row.finished == true && (
                         <CheckBoxIcon
                           sx={{
@@ -343,8 +370,8 @@ export function TaskList() {
                         ></DisabledByDefaultIcon>
                       )}
                     </TableCell>
-                    <TableCell align="right">{row.startDateTime}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">{row.startDateTime}</TableCell>
+                    <TableCell align="center">
                       {new Date(row.elapsedTime * 1000)
                         .toISOString()
                         .substring(11, 19)}

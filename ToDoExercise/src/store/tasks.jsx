@@ -7,19 +7,19 @@ const taskSlice = createSlice({
     storedTasks: [
       {
         id: 1,
-        name: "test1",
-        category: "category1",
+        name: "Take the dog out",
+        category: "Home",
         finished: true,
         startDateTime: new Date(2024, 5, 5).toLocaleString(),
-        elapsedTime: 600,
+        elapsedTime: 1000,
       },
       {
         id: 2,
-        name: "test2",
-        category: "category2",
+        name: "Get Tara coffee",
+        category: "Work",
         finished: true,
         startDateTime: new Date(2024, 5, 5).toLocaleString(),
-        elapsedTime: 6000,
+        elapsedTime: 3000,
       },
     ],
     taskHistory: [],
@@ -27,11 +27,13 @@ const taskSlice = createSlice({
   },
   reducers: {
     addTask: (tasks, action) => {
+      //update history
+      tasks.taskHistory = [...tasks.taskHistory, [...tasks.storedTasks]];
+
       const { taskName, taskCategory } = action.payload;
       lastId++;
-
       const now = new Date().toLocaleString();
-      tasks.taskHistory = [...tasks.taskHistory, [...tasks.storedTasks]];
+
       tasks.storedTasks.push({
         id: lastId,
         name: taskName,
@@ -42,11 +44,12 @@ const taskSlice = createSlice({
       });
     },
     updateTask: (tasks, action) => {
+      //update history
+      tasks.taskHistory = [...tasks.taskHistory, [...tasks.storedTasks]];
+
       const { taskId, taskName, taskCategory } = action.payload;
 
       var taskIndex = tasks.storedTasks.findIndex((t) => t.id === taskId);
-
-      tasks.taskHistory = [...tasks.taskHistory, [...tasks.storedTasks]];
       tasks.storedTasks[taskIndex] = {
         ...tasks.storedTasks[taskIndex],
         name: taskName,
@@ -54,27 +57,32 @@ const taskSlice = createSlice({
       };
     },
     deleteTask: (tasks, action) => {
+      //update history
+      tasks.taskHistory = [...tasks.taskHistory, [...tasks.storedTasks]];
+
       const { taskId } = action.payload;
 
       var taskIndex = tasks.storedTasks.findIndex((t) => t.id === taskId);
-
       tasks.storedTasks[taskIndex] = {
         ...tasks.storedTasks[taskIndex],
       };
-      tasks.taskHistory = [...tasks.taskHistory, [...tasks.storedTasks]];
+
       tasks.storedTasks.splice(taskIndex, 1);
     },
     finishTask: (tasks, action) => {
-      const { taskId } = action.payload;
-      var taskIndex = tasks.storedTasks.findIndex((t) => t.id === taskId);
+      //update history
+      tasks.taskHistory = [...tasks.taskHistory, [...tasks.storedTasks]];
 
+      const { taskId } = action.payload;
+
+      var taskIndex = tasks.storedTasks.findIndex((t) => t.id === taskId);
       var startDateTime = tasks.storedTasks[taskIndex].startDateTime;
       var endDateTime = Date.now();
+      //calc elapsed time between startDateTime and now
       var seconds =
         (new Date(endDateTime).getTime() - new Date(startDateTime).getTime()) /
         1000;
 
-      tasks.taskHistory = [...tasks.taskHistory, [...tasks.storedTasks]];
       tasks.storedTasks[taskIndex] = {
         ...tasks.storedTasks[taskIndex],
         finished: true,
@@ -82,24 +90,30 @@ const taskSlice = createSlice({
       };
     },
     undoAction: (tasks) => {
+      //snapshot
       tasks.taskFuturity = [...tasks.taskHistory, [...tasks.storedTasks]];
 
       const lastAction = tasks.taskHistory[tasks.taskHistory.length - 1];
       const history = tasks.taskHistory.slice(0, tasks.taskHistory.length - 1);
 
+      //restore lastaction to storage
       tasks.storedTasks = [...lastAction];
+      //restore history
       tasks.taskHistory = history;
     },
     redoAction: (tasks) => {
       const redoAction = tasks.taskFuturity[tasks.taskFuturity.length - 1];
       const resetHistory = tasks.taskFuturity;
 
+      //reset undo
       tasks.storedTasks = [...redoAction];
+      //reset history
       tasks.taskHistory = resetHistory;
     },
   },
 });
 
+//exports
 export const { getTasks } = (state) => state.store.currentTasks;
 
 export const {

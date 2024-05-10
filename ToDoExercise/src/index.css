@@ -92,3 +92,13 @@ button:focus-visible {
 .remove-padding {
   padding: 0 !important;
 }
+
+.select {
+  width: 100% !important;
+}
+
+.options {
+  width: 100% !important;
+  background-color: white !important;
+  color: black !important;
+}

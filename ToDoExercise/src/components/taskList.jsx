@@ -6,9 +6,16 @@ Display: Page should display a list of ToDo items with the following actions:
     Complete Task: Implement an intuitive way for the user to set a task as 'done'.
     Undo Action: Add an undo button which will undo the previous Add/Delete action
 */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { addTask, updateTask, deleteTask, finishTask } from "../store/tasks";
+import {
+  addTask,
+  updateTask,
+  deleteTask,
+  finishTask,
+  undoAction,
+  redoAction,
+} from "../store/tasks";
 
 import Container from "@mui/material/Container";
 import Table from "@mui/material/Table";
@@ -25,10 +32,13 @@ import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 
 import UndoIcon from "@mui/icons-material/Undo";
+import RedoIcon from "@mui/icons-material/Redo";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import PublishIcon from "@mui/icons-material/Publish";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import DisabledByDefaultIcon from "@mui/icons-material/DisabledByDefault";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
 
 export function TaskList() {
   const dispatch = useDispatch();
@@ -37,6 +47,7 @@ export function TaskList() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarButtonText, setSnackbarButtonText] = useState("");
+  const [snackbarRedo, setSnackbarRedo] = useState(false);
   const handleOpen = () => setTaskModalOpen(true);
   const handleClose = () => setTaskModalOpen(false);
 
@@ -52,9 +63,9 @@ export function TaskList() {
     category,
     finished,
     startDateTime,
-    endDateTime
+    elapsedTime
   ) {
-    return { id, name, finished, category, startDateTime, endDateTime };
+    return { id, name, finished, category, startDateTime, elapsedTime };
   }
 
   const tasks = useSelector((state) => state.tasks);
@@ -66,7 +77,7 @@ export function TaskList() {
       task.category,
       task.finished,
       task.startDateTime,
-      task.endDateTime
+      task.elapsedTime
     );
     rows.push(row);
   });
@@ -89,7 +100,7 @@ export function TaskList() {
   const handleAddTask = () => {
     dispatch(addTask({ taskName: taskName, taskCategory: taskCategory }));
     handleClose();
-    handleSnackbar("Task has been added", "Undo");
+    handleSnackbar("Task has been added", "Undo Add");
     setSnackbarOpen(true);
   };
 
@@ -102,28 +113,44 @@ export function TaskList() {
       })
     );
     handleClose();
-    handleSnackbar("Task has been updated", "Undo");
+    handleSnackbar("Task has been updated", "Undo Edit");
     setSnackbarOpen(true);
   };
 
   const handleDeleteTask = (row) => {
     dispatch(deleteTask({ taskId: row.id }));
-    handleSnackbar("Task has been deleted", "Undo");
+    handleSnackbar("Task has been deleted", "Undo Delete");
     setSnackbarOpen(true);
   };
 
   const handleFinishTask = () => {
     dispatch(finishTask({ taskId: taskId }));
+    handleSnackbar("Task has been finished", "Undo Finish");
+    setSnackbarOpen(true);
     handleClose();
   };
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
+    setSnackbarRedo(false);
   };
 
   const handleSnackbar = (message, buttonText) => {
     setSnackbarMessage(message);
     setSnackbarButtonText(buttonText);
+  };
+
+  const handleUndo = () => {
+    dispatch(undoAction());
+    handleSnackbar("Undo Successful", "Redo");
+    setSnackbarRedo(true);
+  };
+
+  const handleRedo = () => {
+    dispatch(redoAction());
+    handleSnackbar("Redo Successful", "Undo");
+    setSnackbarRedo(false);
+    setSnackbarOpen(false);
   };
 
   return (
@@ -133,25 +160,44 @@ export function TaskList() {
         message={snackbarMessage}
         onClose={handleSnackbarClose}
         sx={{
-          transform: "translate(calc(41vw), calc(-80vh))",
-          width: "300px",
+          transform: "translate(calc(61.25vw), calc(-80vh))",
+          width: "250px",
         }}
       >
         <Alert
           onClose={handleSnackbarClose}
           severity="success"
           variant="filled"
-          sx={{ width: "100%", backgroundColor: "#33b249" }}
+          sx={{
+            width: "100%",
+            backgroundColor: "#33b249",
+            textAlign: "center !important",
+          }}
         >
           {snackbarMessage}
-          <Button
-            sx={{
-              fontWeight: "bold",
-            }}
-          >
-            <UndoIcon></UndoIcon>
-            {snackbarButtonText}
-          </Button>
+          <br></br>
+          {snackbarRedo == false && (
+            <Button
+              sx={{
+                fontWeight: "bold",
+              }}
+              onClick={() => handleUndo()}
+            >
+              <UndoIcon></UndoIcon>
+              {snackbarButtonText}
+            </Button>
+          )}
+          {snackbarRedo == true && (
+            <Button
+              sx={{
+                fontWeight: "bold",
+              }}
+              onClick={() => handleRedo()}
+            >
+              <RedoIcon></RedoIcon>
+              {snackbarButtonText}
+            </Button>
+          )}
         </Alert>
       </Snackbar>
       <Modal open={taskModalOpen} onClose={() => handleClose()}>
@@ -181,6 +227,7 @@ export function TaskList() {
                   label="Category"
                   className="text-input"
                   value={taskCategory}
+                  onChange={(e) => setTaskCategory(e.target.value)}
                 ></TextField>
               </div>
             </div>
@@ -240,8 +287,7 @@ export function TaskList() {
         }}
       >
         <div className="task-list">
-          <h1>Task List</h1>
-          <h4>Add tasks below</h4>
+          <h1>Tasks</h1>
           <div className="d-flex flex-row-reverse">
             <div className="col-3 remove-padding">
               <Button
@@ -266,7 +312,7 @@ export function TaskList() {
                   <TableCell align="right">Category</TableCell>
                   <TableCell align="right">Finished</TableCell>
                   <TableCell align="right">Start Date</TableCell>
-                  <TableCell align="right">End Date</TableCell>
+                  <TableCell align="right">Elapsed Time</TableCell>
                   <TableCell align="right"></TableCell>
                 </TableRow>
               </TableHead>
@@ -282,10 +328,27 @@ export function TaskList() {
                     <TableCell align="right">{row.name}</TableCell>
                     <TableCell align="right">{row.category}</TableCell>
                     <TableCell align="right">
-                      {row.finished.toString()}
+                      {row.finished == true && (
+                        <CheckBoxIcon
+                          sx={{
+                            color: "#33b249",
+                          }}
+                        ></CheckBoxIcon>
+                      )}
+                      {row.finished == false && (
+                        <DisabledByDefaultIcon
+                          sx={{
+                            color: "#ED0800",
+                          }}
+                        ></DisabledByDefaultIcon>
+                      )}
                     </TableCell>
                     <TableCell align="right">{row.startDateTime}</TableCell>
-                    <TableCell align="right">{row.endDateTime}</TableCell>
+                    <TableCell align="right">
+                      {new Date(row.elapsedTime * 1000)
+                        .toISOString()
+                        .substring(11, 19)}
+                    </TableCell>
                     <TableCell>
                       <div className="float-end">
                         <Button
